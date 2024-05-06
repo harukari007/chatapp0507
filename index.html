@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>chatApp</title>
+  <style>
+    /* #output li {
+      background: #ccc;
+    } */
+  </style>
+</head>
+
+<body>
+  <h1>無限Chatbot</h1>
+  <!-- 入力場所を作成しよう -->
+  <form>
+    <fieldset>
+      <legend>チャット入力画面</legend>
+      <div>
+        name: <input type="text" id="name">
+      </div>
+      <div>
+        text: <input type="text" id="text">
+      </div>
+      <div>
+        <button type="button" id="send">send</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- データ出力場所 -->
+  <ul id="output"></ul>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script>
+    // 日時をいい感じの形式にする関数
+    function convertTimestampToDatetime(timestamp) {
+      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+      const Y = _d.getFullYear();
+      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+      const d = _d.getDate().toString().padStart(2, '0');
+      const H = _d.getHours().toString().padStart(2, '0');
+      const i = _d.getMinutes().toString().padStart(2, '0');
+      const s = _d.getSeconds().toString().padStart(2, '0');
+      return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
+  </script>
+  <!-- 以下にfirebaseのコードを貼り付けよう -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+
+    // 🔽 追加 / `9.2.0`の部分を↑のFirestoreから貼り付けたコードのバージョンに合わせる
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      serverTimestamp,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+
+      authDomain: "chatbotwork0507.firebaseapp.com",
+      projectId: "chatbotwork0507",
+      storageBucket: "chatbotwork0507.appspot.com",
+      messagingSenderId: "526786170574",
+      appId: "1:526786170574:web:29655ba0e5a58609324a9f"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    $(document).ready(function () {
+      const outputElement = $("#output");
+      let messageCount = 0;
+
+      $('#send').on("click", function () { // 送信時の処理
+        const postData = {
+          name: $("#name").val(),
+          text: $("#text").val(),
+          time: Math.floor(Date.now() / 1000), // 現在のUNIXタイムスタンプ
+          isUser: true // ユーザーメッセージであることを示すフラグ
+        };
+        displayMessage(postData);
+        $("#text").val(''); // 入力欄をクリア
+      });
+
+      function displayMessage(data) {
+        const messageClass = data.isUser ? 'user-message' : 'bot-message';
+        const sender = data.isUser ? data.name : 'ChatBot'; // ユーザーの名前を表示
+        const meta = convertTimestampToDatetime(data.time);
+        const messageHtml = `
+          <li class="${messageClass}" style="background-color: ${messageCount % 2 === 0 ? '#f9f9f9' : '#e9e9e9'}">
+            <div class="meta">${sender} at ${meta}</div>
+            <div class="text">${data.text}</div>
+          </li>
+        `;
+        outputElement.append(messageHtml); // メッセージを表示
+        outputElement.scrollTop(outputElement[0].scrollHeight); // スクロールを最下部に移動
+        messageCount++;
+      }
+
+      // 既存の会話履歴を表示
+      const chatHistory = [
+        { name: "あなた", text: "こんにちは", time: 1642636800, isUser: true },
+        { name: "ChatBot", text: "ごきげんよう", time: 1642636860, isUser: false },
+        // ここに他の会話履歴を追加
+      ];
+
+      chatHistory.forEach(function (message) {
+        displayMessage(message);
+      });
+
+      // ダミーのBot応答
+      const botResponses = [
+        "ちょっと何言ってるかわかりません",
+        "How can I help you today?",
+        "それ、ガーチャー！ほんまごめんやで",
+        "元気ですか~~~!?!?元気があれば何でもできる",
+        "見た目は子供、頭脳は大人！"
+      ];
+
+      // ユーザーがメッセージを送信したら、ダミーのBot応答を返す
+      $('#send').on("click", function () {
+        const randomIndex = Math.floor(Math.random() * botResponses.length);
+        const botMessage = {
+          name: "ChatBot",
+          text: botResponses[randomIndex],
+          time: Math.floor(Date.now() / 1000), // 現在のUNIXタイムスタンプ
+          isUser: false // ボットメッセージであることを示すフラグ
+        };
+        displayMessage(botMessage);
+      });
+    });
+  </script>
+
+  </script>
+
+</body>
+
+</html>
